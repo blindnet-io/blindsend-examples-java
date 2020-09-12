@@ -17,5 +17,11 @@ Class `BlindsendFileReceivingExample` contains a main method that can be run to 
 1. Downloading the encrypted file from blindsend via generated link
 2. Decryption of downloaded file on your local machine
 
+This project uses [Bouncy Castle](https://www.bouncycastle.org/) cryptographic library. Therefore, when using it in your own project make sure to add `BouncyCastleProvider` to the security provides in your main method
+```Java
+Security.addProvider(new BouncyCastleProvider());
+```  
+
+## Current status
 This project is in ongoing development.
 
