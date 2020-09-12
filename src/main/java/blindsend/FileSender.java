@@ -55,6 +55,7 @@ public class FileSender {
         String encryptedFilePath = System.getProperty("java.io.tmpdir") + "tempUploadedEncrypted";
 
         File inputFile = new File(inputFilePath.toString());
+        String fileName = inputFile.getName();
         LOGGER.info("Loaded file for encryption " + inputFilePath);
 
         CryptoFactory.encryptAndSaveFile(masterKey, inputFile, encryptedFilePath);
@@ -62,7 +63,6 @@ public class FileSender {
         this.api.uploadFile(linkId, uploadId, encryptedFilePath);
 
         File encryptedFile = new File(encryptedFilePath);
-        String fileName = encryptedFile.getName();
         long fileSize = encryptedFile.length();
 
         this.api.finishHandshake(

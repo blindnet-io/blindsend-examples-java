@@ -275,6 +275,46 @@ public class BlindsendAPI {
     }
 
     /**
+     * Returns the name of the file exchanged with given link Id
+     * @param linkId link Id
+     * @return file name
+     * @throws IOException
+     */
+    public String getFileName(String linkId) throws IOException {
+        final String POST_PARAMS = "{\n" +
+                "   \"" + this.linkId + "\": \"" + linkId + "\" \n}";
+
+        URL obj = new URL(endpoint + "/get-file-metadata");
+        HttpURLConnection postConnection = (HttpURLConnection) obj.openConnection();
+        postConnection.setRequestMethod("POST");
+        postConnection.setRequestProperty("Content-Type", "application/json");
+        postConnection.setDoOutput(true);
+
+        postConnection.setDoOutput(true);
+        OutputStream os = postConnection.getOutputStream();
+        os.write(POST_PARAMS.getBytes());
+        os.flush();
+        os.close();
+
+        int responseCode = postConnection.getResponseCode();
+        LOGGER.info("/get-file-metadata Response code " + responseCode);
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            BufferedReader in = new BufferedReader(new InputStreamReader(
+                    postConnection.getInputStream()));
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+            while ((inputLine = in .readLine()) != null) {
+                response.append(inputLine);
+            } in .close();
+            JSONObject json = new JSONObject(response.toString());
+            String fileName = json.getString(this.fileName);
+            return fileName;
+        } else {
+            throw new RuntimeException("/get-file-metadata on BlindsendAPI failed");
+        }
+    }
+
+    /**
      * Calls blindsend API to obtain cryptographic information necessary for decryption of the file. Called by file receiver
      * @param linkId Link id
      * @return Keys object, containing cryptographic information necessary for decryption of the file

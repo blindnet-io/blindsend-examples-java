@@ -71,11 +71,13 @@ public class FileReceiver {
      * Downloads encrypted file from blindsend, and decrypts it to decryptedFilePath
      * @param linkUrl File exchange link
      * @param pass Password
-     * @param decryptedFilePath Path to save decrypted file
+     * @param decryptedFileFolder Folder to save decrypted file into
      */
-    public void receiveAndDecryptFile(URL linkUrl, String pass, Path decryptedFilePath) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException {
+    public void receiveAndDecryptFile(URL linkUrl, String pass, Path decryptedFileFolder) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException {
         String tempFilePath = System.getProperty("java.io.tmpdir") + "tempDownloadedEncrypted";
         String linkId = BlindsendUtil.extractLinkId(linkUrl.toString());
+        String fileName = this.api.getFileName(linkId);
+        String decryptedFilePath = decryptedFileFolder + "/" + fileName;
         Keys keys = this.api.getKeys(linkId);
 
         byte[] kdfSalt = keys.getKdfSalt();
@@ -99,7 +101,7 @@ public class FileReceiver {
         byte[] skEncryptionKeyHash = CryptoFactory.generateSkEncryptionKeyHash(skEncryptionKey);
         File encryptedFile = this.api.downloadFile(linkId, skEncryptionKeyHash, tempFilePath);
 
-        LOGGER.info("Decrypting saved file to " + decryptedFilePath);
-        CryptoFactory.decryptAndSaveFile(masterKey2, encryptedFile, decryptedFilePath.toString());
+        LOGGER.info("Decrypting saved file to " + decryptedFileFolder + fileName);
+        CryptoFactory.decryptAndSaveFile(masterKey2, encryptedFile, decryptedFilePath);
     }
 }

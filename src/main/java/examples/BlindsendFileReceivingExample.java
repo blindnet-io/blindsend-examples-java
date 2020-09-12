@@ -27,7 +27,7 @@ public class BlindsendFileReceivingExample {
     public static void main(String[] args) throws MalformedURLException {
         Security.addProvider(new BouncyCastleProvider());
 
-        Path decryptedFilePath = Paths.get("src/main/resources/files/pcr_decrypted.pdf");
+        Path decryptedFileFolder = Paths.get(System.getProperty("user.home"));
 
         BlindsendAPI api = new BlindsendAPI("https://blindsend.tech/api");
         FileReceiver receiver = new FileReceiver(api);
@@ -38,7 +38,7 @@ public class BlindsendFileReceivingExample {
             receiver.receiveAndDecryptFile(
                     link,
                     "mypass",
-                    decryptedFilePath
+                    decryptedFileFolder
             );
         } catch (InvalidKeySpecException e) {
             Logger.getLogger(BlindsendFileReceivingExample.class.getName()).log(Level.SEVERE, "InvalidKeySpecException", e);
