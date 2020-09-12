@@ -1,12 +1,5 @@
 package util;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Properties;
-
 /**
  * The BlindsendUtil class provides helper methods for for working with different representation of data.
  * It also provides helper methods useful for manipulating blindsend links and link ids

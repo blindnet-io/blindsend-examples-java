@@ -2,11 +2,8 @@ package crypto;
 
 import org.apache.commons.io.FileUtils;
 import org.bouncycastle.crypto.digests.Blake2bDigest;
-import org.bouncycastle.crypto.engines.XSalsa20Engine;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.util.encoders.Hex;
 import util.BlindsendUtil;
 

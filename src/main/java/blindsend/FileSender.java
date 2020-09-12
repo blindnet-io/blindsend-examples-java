@@ -4,7 +4,6 @@ import api.BlindsendAPI;
 import crypto.CryptoFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import util.BlindsendUtil;
 import util.ContHandshakeResp;
 
@@ -13,7 +12,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 
 /**
@@ -38,7 +36,7 @@ public class FileSender {
      * @param linkUrl File exchange link
      * @param inputFilePath Path to a file to be exchanged
      */
-    public void encryptAndSendFile(URL linkUrl, Path inputFilePath) throws NoSuchAlgorithmException, InvalidKeySpecException, GeneralSecurityException, IOException  {
+    public void encryptAndSendFile(URL linkUrl, Path inputFilePath) throws GeneralSecurityException, IOException  {
         String linkId = BlindsendUtil.extractLinkId(linkUrl.toString());
         ContHandshakeResp contResp = this.api.continueHandshake(linkId);
 

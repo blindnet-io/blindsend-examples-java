@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import util.Keys;
 import crypto.CryptoFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import util.BlindsendUtil;
 
 import javax.crypto.BadPaddingException;
