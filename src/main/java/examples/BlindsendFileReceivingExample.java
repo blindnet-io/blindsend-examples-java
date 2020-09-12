@@ -2,6 +2,7 @@ package examples;
 
 import api.BlindsendAPI;
 import blindsend.FileReceiver;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -11,10 +12,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,12 +25,14 @@ import java.util.logging.Logger;
 public class BlindsendFileReceivingExample {
 
     public static void main(String[] args) throws MalformedURLException {
+        Security.addProvider(new BouncyCastleProvider());
+
         Path decryptedFilePath = Paths.get("src/main/resources/files/pcr_decrypted.pdf");
 
         BlindsendAPI api = new BlindsendAPI("https://blindsend.tech/api");
         FileReceiver receiver = new FileReceiver(api);
 
-        URL link = new URL("");
+        URL link = new URL(""); // insert link here
 
         try {
             receiver.receiveAndDecryptFile(

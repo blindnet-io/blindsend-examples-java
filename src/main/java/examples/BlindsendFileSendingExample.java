@@ -4,6 +4,7 @@ import api.BlindsendAPI;
 import blindsend.FileReceiver;
 import blindsend.FileSender;
 import org.apache.logging.log4j.LogManager;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.IOException;
 import java.net.URL;
@@ -11,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,6 +26,8 @@ public class BlindsendFileSendingExample {
     private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger(BlindsendFileSendingExample.class.getName());
 
     public static void main(String[] args) {
+        Security.addProvider(new BouncyCastleProvider());
+
         Path fileToSendPath = Paths.get("src/main/resources/files/pcr.pdf");
         BlindsendAPI api = new BlindsendAPI("https://blindsend.tech/api");
         FileReceiver receiver = new FileReceiver(api);

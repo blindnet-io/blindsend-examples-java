@@ -35,7 +35,6 @@ public class FileReceiver {
      */
     public FileReceiver(BlindsendAPI api){
         this.api = api;
-        Security.addProvider(new BouncyCastleProvider());
     }
 
     /**
