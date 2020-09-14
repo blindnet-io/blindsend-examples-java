@@ -45,7 +45,7 @@ public class FileSender {
 
         KeyPair keyPairSender = CryptoFactory.generateKeyPair();
         
-        KeyFactory kf = KeyFactory.getInstance("XDH");
+        KeyFactory kf = KeyFactory.getInstance("XDH", "BC");
 
         PublicKey pkRequestor = kf.generatePublic(new X509EncodedKeySpec(pkRequestorBytes));
 

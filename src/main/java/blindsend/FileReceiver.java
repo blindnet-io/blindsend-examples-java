@@ -89,7 +89,7 @@ public class FileReceiver {
         byte[] encryptedSK = keys.getEncryptedSK();
         byte[] decryptedSK = CryptoFactory.decryptSK(encryptedSK, skEncryptionKey, skEncryptionIv);
 
-        KeyFactory kf = KeyFactory.getInstance("XDH");
+        KeyFactory kf = KeyFactory.getInstance("XDH", "BC");
         
         PrivateKey decryptedSKAsPrivateK = kf.generatePrivate(new PKCS8EncodedKeySpec(decryptedSK));
 
@@ -101,7 +101,7 @@ public class FileReceiver {
         byte[] skEncryptionKeyHash = CryptoFactory.generateSkEncryptionKeyHash(skEncryptionKey);
         File encryptedFile = this.api.downloadFile(linkId, skEncryptionKeyHash, tempFilePath);
 
-        LOGGER.info("Decrypting saved file to " + decryptedFileFolder + fileName);
+        LOGGER.info("Decrypting saved file to " + decryptedFileFolder + "/" + fileName);
         CryptoFactory.decryptAndSaveFile(masterKey2, encryptedFile, decryptedFilePath);
     }
 }
