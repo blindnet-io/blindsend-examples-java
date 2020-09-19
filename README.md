@@ -2,7 +2,7 @@
 
 This project offers an example of [blindsend](https://github.com/blindnet-io/blindsend) Java library for private, end-to-end encrypted file exchange in only a few lines of code. Blindsend is an open source tool for private file exchanging between a Sender and a Receiver.
 
-[Blindsend](https://github.com/blindnet-io/blindsend) works by having a file requesting party (which is also a file receiver) generating a file exchange link via blindsend, and transmitting the link to the file Sender. The Sender then uses the link to upload the file, which is first encrypted before uploading it to blindsend. After successful upload, the Receiver can use the same link to download the encrypted file. Once downloaded, the file is decrypted locally on Receiver's machine. A demo with a web client is avalable [here](https://blindsend.xyz).
+[Blindsend](https://github.com/blindnet-io/blindsend) works by having a file requesting party (which is also a file receiver) providing a password to generate a file exchange link via blindsend, and transmitting the link to the file Sender. The Sender then uses the link to upload the file, which is first encrypted before uploading it to blindsend. After successful upload, the Receiver uses the password and the same link to download the encrypted file. Once downloaded, the file is decrypted locally on Receiver's machine. A demo with a web client is avalable [here](https://blindsend.xyz).
 
 ## Quick start
 
@@ -18,7 +18,7 @@ The first exec:java command uses `FileReceiver` to request blindsend file exchan
 
 The second exec:java requires `-Dexec.args=` flag to specify the previously generated link, and uses `FileReceiver` to download and decrypt the previously uploaded encrypted file. Decrypted file is saved in your local `home` folder.
 
-The above file exchange workflow uses our test API which is already specified in the run classes' main methods. You can also [run your own instance](https://github.com/blindnet-io/blindsend-be#installation-instructions) of blindsend API locally.
+The above file exchange example uses our test API which is already specified in the run classes' main methods. You can also [run your own instance](https://github.com/blindnet-io/blindsend-be#installation-instructions) of blindsend API locally. Note that in this example the password for generating file exchange link is specified in the code in the main methods.
 
 ## Dependencies
 
