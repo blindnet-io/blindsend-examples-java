@@ -5,7 +5,6 @@ import crypto.CryptoFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import util.BlindsendUtil;
-import util.ContHandshakeResp;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,22 +37,17 @@ public class FileSender {
      */
     public void encryptAndSendFile(URL linkUrl, Path inputFilePath) throws GeneralSecurityException, IOException  {
         String linkId = BlindsendUtil.extractLinkId(linkUrl.toString());
-        ContHandshakeResp contResp = this.api.continueHandshake(linkId);
 
-        byte[] pkRequestorBytes = contResp.getPkRequestor();
-        String uploadId = contResp.getUploadId();
+        byte[] pkReceiverBytes = BlindsendUtil.toByte(BlindsendUtil.extractKey(linkUrl.toString()));
+        KeyFactory kf = KeyFactory.getInstance("XDH", "BC");
+        PublicKey pkReceiver = kf.generatePublic(new X509EncodedKeySpec(pkReceiverBytes));
+
+        String uploadId = this.api.prepareUpload(linkId);
 
         KeyPair keyPairSender = CryptoFactory.generateKeyPair();
-        
-        KeyFactory kf = KeyFactory.getInstance("XDH", "BC");
+        byte[] masterKey = CryptoFactory.generateMasterKey(keyPairSender.getPrivate(), pkReceiver);
 
-        PublicKey pkRequestor = kf.generatePublic(new X509EncodedKeySpec(pkRequestorBytes));
-
-        byte[] masterKey = CryptoFactory.generateMasterKey(keyPairSender.getPrivate(), pkRequestor);
-
-        byte[] masterKeyHash = CryptoFactory.generateSkEncryptionKeyHash(masterKey);
         String encryptedFilePath = System.getProperty("java.io.tmpdir") + "tempUploadedEncrypted";
-
         File inputFile = new File(inputFilePath.toString());
         String fileName = inputFile.getName();
         LOGGER.info("Loaded file for encryption " + inputFilePath);
@@ -65,10 +59,9 @@ public class FileSender {
         File encryptedFile = new File(encryptedFilePath);
         long fileSize = encryptedFile.length();
 
-        this.api.finishHandshake(
+        this.api.finishUpload(
                 linkId,
                 keyPairSender.getPublic().getEncoded(),
-                masterKeyHash,
                 "",
                 fileName,
                 fileSize

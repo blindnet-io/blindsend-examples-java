@@ -2,8 +2,8 @@ package examples;
 
 import api.BlindsendAPI;
 import blindsend.FileReceiver;
+import org.apache.logging.log4j.LogManager;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -24,15 +24,22 @@ import java.util.logging.Logger;
  */
 public class BlindsendFileReceivingExample {
 
+    private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger(BlindsendFileReceivingExample.class.getName());
+
     public static void main(String[] args) throws MalformedURLException {
         Security.addProvider(new BouncyCastleProvider());
 
         Path decryptedFileFolder = Paths.get(System.getProperty("user.home"));
 
         BlindsendAPI api = new BlindsendAPI("https://blindsend.tech/api");
+        LOGGER.info("Blindsend API endpoint: " + api.getEndpoint());
         FileReceiver receiver = new FileReceiver(api);
 
-        URL link = new URL(""); // insert link here
+        URL link;
+        if (args.length == 0)
+            link = new URL(""); // insert link here if running main method without arguments
+        else
+            link = new URL(args[0]);
 
         try {
             receiver.receiveAndDecryptFile(
@@ -58,6 +65,8 @@ public class BlindsendFileReceivingExample {
             Logger.getLogger(BlindsendFileReceivingExample.class.getName()).log(Level.SEVERE, "BadPaddingException", e);
         } catch (InvalidAlgorithmParameterException e) {
             Logger.getLogger(BlindsendFileReceivingExample.class.getName()).log(Level.SEVERE, "InvalidAlgorithmParameterException", e);
+        } catch (GeneralSecurityException e) {
+            Logger.getLogger(BlindsendFileReceivingExample.class.getName()).log(Level.SEVERE, "GeneralSecurityException", e);
         }
     }
 }

@@ -6,17 +6,11 @@ import org.apache.logging.log4j.Logger;
 import util.Keys;
 import crypto.CryptoFactory;
 import util.BlindsendUtil;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 /**
@@ -44,27 +38,20 @@ public class FileReceiver {
     public URL getLink(String pass) throws IOException, GeneralSecurityException {
         String linkId = this.api.getLinkId();
 
-        KeyPair keyPairRequestor = CryptoFactory.generateKeyPair();
-
         byte[] kdfSalt = CryptoFactory.generateRandom(16);
         int kdfOps = 1;
         int kdfMemLimit = 8192;
-        byte[] skEncryptionKey = CryptoFactory.generateSkEncryptionKey(pass, kdfSalt, kdfOps, kdfMemLimit);
-        byte[] skEncryptionKeyHash = CryptoFactory.generateSkEncryptionKeyHash(skEncryptionKey);
-        byte[] skEncryptionIv = CryptoFactory.generateRandom(24);
-        byte[] encryptedSK = CryptoFactory.encryptSK(keyPairRequestor.getPrivate().getEncoded(), skEncryptionKey, skEncryptionIv);
+        byte[] passSeed = CryptoFactory.generateKeyPairSeed(pass, kdfSalt, kdfOps, kdfMemLimit);
+        KeyPair keyPairReceiver = CryptoFactory.generateKeyPair(passSeed);
+        String pkReceiver = BlindsendUtil.toHex(keyPairReceiver.getPublic().getEncoded());
 
-        String link = this.api.beginHandshake(
+        String link = this.api.initializeSession(
                 linkId,
-                keyPairRequestor.getPublic().getEncoded(),
-                skEncryptionIv,
-                encryptedSK,
                 kdfSalt,
                 kdfOps,
-                kdfMemLimit,
-                skEncryptionKeyHash
+                kdfMemLimit
         );
-        return new URL(link);
+        return new URL(link + "#" + pkReceiver);
     }
 
     /**
@@ -73,9 +60,10 @@ public class FileReceiver {
      * @param pass Password
      * @param decryptedFileFolder Folder to save decrypted file into
      */
-    public void receiveAndDecryptFile(URL linkUrl, String pass, Path decryptedFileFolder) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, IOException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, NoSuchPaddingException {
+    public void receiveAndDecryptFile(URL linkUrl, String pass, Path decryptedFileFolder) throws GeneralSecurityException, IOException {
         String tempFilePath = System.getProperty("java.io.tmpdir") + "tempDownloadedEncrypted";
         String linkId = BlindsendUtil.extractLinkId(linkUrl.toString());
+
         String fileName = this.api.getFileName(linkId);
         String decryptedFilePath = decryptedFileFolder + "/" + fileName;
         Keys keys = this.api.getKeys(linkId);
@@ -83,25 +71,20 @@ public class FileReceiver {
         byte[] kdfSalt = keys.getKdfSalt();
         int kdfOps = keys.getKdfOps();
         int kdfMemLimit = keys.getKdfMemLimit();
-        byte[] skEncryptionKey = CryptoFactory.generateSkEncryptionKey(pass, kdfSalt, kdfOps, kdfMemLimit);
-
-        byte[] skEncryptionIv = keys.getSkEncryptionIv();
-        byte[] encryptedSK = keys.getEncryptedSK();
-        byte[] decryptedSK = CryptoFactory.decryptSK(encryptedSK, skEncryptionKey, skEncryptionIv);
 
         KeyFactory kf = KeyFactory.getInstance("XDH", "BC");
-        
-        PrivateKey decryptedSKAsPrivateK = kf.generatePrivate(new PKCS8EncodedKeySpec(decryptedSK));
-
         byte[] pkSenderBytes = keys.getPkSender();
         PublicKey pkSender = kf.generatePublic(new X509EncodedKeySpec(pkSenderBytes));
 
-        byte[] masterKey2 = CryptoFactory.generateMasterKey(decryptedSKAsPrivateK, pkSender);
+        byte[] passSeed = CryptoFactory.generateKeyPairSeed(pass, kdfSalt, kdfOps, kdfMemLimit);
+        KeyPair keyPairReceiver = CryptoFactory.generateKeyPair(passSeed);
+        PrivateKey skReceiver = keyPairReceiver.getPrivate();
 
-        byte[] skEncryptionKeyHash = CryptoFactory.generateSkEncryptionKeyHash(skEncryptionKey);
-        File encryptedFile = this.api.downloadFile(linkId, skEncryptionKeyHash, tempFilePath);
+        byte[] masterKey = CryptoFactory.generateMasterKey(skReceiver, pkSender);
+
+        File encryptedFile = this.api.downloadFile(linkId, tempFilePath);
 
         LOGGER.info("Decrypting saved file to " + decryptedFileFolder + "/" + fileName);
-        CryptoFactory.decryptAndSaveFile(masterKey2, encryptedFile, decryptedFilePath);
+        CryptoFactory.decryptAndSaveFile(masterKey, encryptedFile, decryptedFilePath);
     }
 }
