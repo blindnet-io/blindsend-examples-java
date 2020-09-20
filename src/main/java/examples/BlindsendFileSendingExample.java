@@ -5,7 +5,6 @@ import blindsend.FileReceiver;
 import blindsend.FileSender;
 import org.apache.logging.log4j.LogManager;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -28,14 +27,19 @@ public class BlindsendFileSendingExample {
     public static void main(String[] args) {
         Security.addProvider(new BouncyCastleProvider());
 
-        Path fileToSendPath = Paths.get("src/main/resources/files/pcr.pdf");
+        Path fileToSendPath;
+        if (args.length == 0)
+            fileToSendPath = Paths.get("src/main/resources/files/pcr.pdf");
+        else
+            fileToSendPath = Paths.get(args[0]);
+
         BlindsendAPI api = new BlindsendAPI("https://blindsend.tech/api");
+        LOGGER.info("Blindsend API endpoint: " + api.getEndpoint());
         FileReceiver receiver = new FileReceiver(api);
         FileSender sender = new FileSender(api);
 
-        URL link = null;
         try {
-            link = receiver.getLink("mypass");
+            URL link = receiver.getLink("mypass");
             sender.encryptAndSendFile(
                     link,
                     fileToSendPath

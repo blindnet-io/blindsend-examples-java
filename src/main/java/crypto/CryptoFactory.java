@@ -1,12 +1,10 @@
 package crypto;
 
 import org.apache.commons.io.FileUtils;
-import org.bouncycastle.crypto.digests.Blake2bDigest;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
-import org.bouncycastle.util.encoders.Hex;
+import org.bouncycastle.crypto.prng.FixedSecureRandom;
 import util.BlindsendUtil;
-
 import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -24,10 +22,22 @@ public class CryptoFactory {
      * @return Key pair
      * @throws GeneralSecurityException
      */
-    public static KeyPair generateKeyPair()
-            throws GeneralSecurityException {
+    public static KeyPair generateKeyPair() throws GeneralSecurityException {
         KeyPairGenerator keyPair = KeyPairGenerator.getInstance("X25519", "BC");
         keyPair.initialize(256);
+        return keyPair.generateKeyPair();
+    }
+
+    /**
+     * Generates PK-SK (X25519)
+     * @param keyPairSeed Seed for key pair generation
+     * @return Key pair
+     * @throws GeneralSecurityException
+     */
+    public static KeyPair generateKeyPair(byte[] keyPairSeed) throws GeneralSecurityException {
+        SecureRandom random = new FixedSecureRandom(keyPairSeed);
+        KeyPairGenerator keyPair = KeyPairGenerator.getInstance("X25519", "BC");
+        keyPair.initialize(256, random);
         return keyPair.generateKeyPair();
     }
 
@@ -44,14 +54,14 @@ public class CryptoFactory {
     }
 
     /**
-     * Generates a key to be used for the encryption of a secret key. Uses Argon2id hashing algorithm
+     * Generates a seed for key pair generation. Uses Argon2id hashing algorithm
      * @param password Password
      * @param kdfSalt Hashing salt
      * @param kdfOps Hashing cycles
      * @param kdfMin Hashing RAM limit
-     * @return A key for the encryption of a secret key
+     * @return Kay pair seed
      */
-    public static byte[] generateSkEncryptionKey(String password, byte[] kdfSalt, int kdfOps, int kdfMin) {
+    public static byte[] generateKeyPairSeed(String password, byte[] kdfSalt, int kdfOps, int kdfMin) {
         Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id).
                 withSalt(kdfSalt).
                 withParallelism(kdfOps).
@@ -62,43 +72,6 @@ public class CryptoFactory {
         byte[] result = new byte[32];
         gen.generateBytes(password.toCharArray(), result, 0, result.length);
         return result;
-    }
-
-    /**
-     * Hashes a key used for the encryption of a secret key. Uses BLAKE2b
-     * @param skEncryptionKey A key to hash
-     * @return Hashed key
-     */
-    public static byte[] generateSkEncryptionKeyHash(byte[] skEncryptionKey){
-        Blake2bDigest messageDigest = new Blake2bDigest(256);
-        messageDigest.update(skEncryptionKey, 0, skEncryptionKey.length);
-        byte[] out = new byte[messageDigest.getDigestSize()];
-        messageDigest.doFinal(out, 0);
-        return Hex.encode(out);
-    }
-
-    /**
-     * Encrypts a secret key
-     * @param sk Secret key to encrypt
-     * @param skEncryptionKey Encryption key
-     * @param skEncryptionIv Encryption nonce
-     * @return Encrypted secret key
-     */
-    public static byte[] encryptSK(byte[] sk, byte[] skEncryptionKey, byte[] skEncryptionIv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException {
-        SecretKey key = new SecretKeySpec(skEncryptionKey, 0, skEncryptionKey.length, "AES");
-        return encryptAesGcm(sk, key, skEncryptionIv);
-    }
-
-    /**
-     * Decrypts a secret key
-     * @param encSK Encrypted secret key
-     * @param skEncryptionKey Encryption key
-     * @param skEncryptionIv Encryption nonce
-     * @return Decrypted secret key
-     */
-    public static byte[] decryptSK(byte[] encSK, byte[] skEncryptionKey, byte[] skEncryptionIv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException {
-        SecretKey key = new SecretKeySpec(skEncryptionKey, 0, skEncryptionKey.length, "AES");
-        return decryptAesGcm(encSK, key, skEncryptionIv);
     }
 
     /**

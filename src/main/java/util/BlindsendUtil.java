@@ -78,7 +78,23 @@ public class BlindsendUtil {
      * @return Link id
      */
     public static String extractLinkId(String link) {
-        int pos = link.lastIndexOf('/') + 1;
+        if (link.contains("#")) {
+            int first = link.lastIndexOf('/') + 1;
+            int last = link.lastIndexOf('#');
+            return link.substring(first, last);
+        } else {
+            int pos = link.lastIndexOf('/') + 1;
+            return link.substring(pos);
+        }
+    }
+
+    /**
+     * Extracts public key from blindsend link
+     * @param link Link
+     * @return Public key
+     */
+    public static String extractKey(String link) {
+        int pos = link.lastIndexOf('#') + 1;
         return link.substring(pos);
     }
 }
