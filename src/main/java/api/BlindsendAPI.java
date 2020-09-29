@@ -22,6 +22,7 @@ public class BlindsendAPI {
 
     final String link = "link";
     final String linkId = "link_id";
+    final String upload_id = "upload_id";
     final String kdfSalt = "kdf_salt";
     final String kdfOps = "kdf_ops";
     final String kdfMemLimit = "kdf_memory_limit";
@@ -160,18 +161,54 @@ public class BlindsendAPI {
     }
 
     /**
-     * Calls blindsend API to upload the encrypted file
+     * Initializes file upload. Must be called before uploading the file
      * @param linkId Link id
      * @param uploadId Upload id
-     * @param filePath Path to encrypted file to be sent to blindsend
+     * @param fileSize Size of the encrypted file in bytes
      * @throws IOException
      */
-    public void uploadFile(String linkId, String uploadId, String filePath) throws IOException{
-        byte[] fileAsBytes = FileUtils.readFileToByteArray(new File(filePath));
-        LOGGER.info("Loaded file to send to API " + filePath);
-        final byte[] POST_PARAMS = fileAsBytes;
+    public void initializeFileUpload(String linkId, String uploadId, long fileSize) throws IOException {
+        final String POST_PARAMS = "{\n" +
+                "   \"" + this.linkId + "\": \"" + linkId + "\",\r\n" +
+                "   \"" + this.uploadId + "\": \"" + uploadId + "\",\r\n" +
+                "   \"" + this.fileSize +"\": " + fileSize + " \n}";
 
-        URL obj = new URL(endpoint + "/request/send-file/" + linkId + "/" + uploadId);
+        URL obj = new URL(endpoint + "/request/init-send-file");
+        HttpURLConnection postConnection = (HttpURLConnection) obj.openConnection();
+        postConnection.setRequestMethod("POST");
+        postConnection.setRequestProperty("Content-Type", "application/json");
+        postConnection.setDoOutput(true);
+
+        postConnection.setDoOutput(true);
+        OutputStream os = postConnection.getOutputStream();
+        os.write(POST_PARAMS.getBytes());
+        os.flush();
+        os.close();
+
+        int responseCode = postConnection.getResponseCode();
+        LOGGER.info("/request/init-send-file Response Code :  " + responseCode);
+        if (responseCode != HttpURLConnection.HTTP_OK)
+            throw new RuntimeException("/request/init-send-file on BlindsendAPI failed");
+    }
+
+    /**
+     * Calls blindsend API to upload one chunk of the encrypted file
+     * Chunk uploads are only supported for files stored on Google Cloud Storage
+     * To upload the whole file in one API call, use file size in bytes for chunkSize, 1 for chunkId, and true for isLast
+     * @param linkId Link id
+     * @param uploadId Upload id
+     * @param chunkId Id of the chunk being uploaded. Chunk ids start at 1
+     * @param chunkSize Chunk size in bytes
+     * @param isLast If the chunk being uploaded is the last chunk
+     * @param chunkBytes File chunk to upload
+     * @throws IOException
+     */
+    public void uploadFileChunk(String linkId, String uploadId, int chunkId, int chunkSize, boolean isLast, byte[] chunkBytes) throws IOException{
+        LOGGER.info("Uploading chunk #" + chunkId + " to the API");
+        final byte[] POST_PARAMS = chunkBytes;
+
+        URL obj = new URL(endpoint + "/request/send-file-part/" + linkId + "/" + uploadId +
+                "?part_id=" + chunkId  + "&chunk_size=" + chunkSize  + "&last=" + isLast);
         HttpURLConnection postConnection = (HttpURLConnection) obj.openConnection();
         postConnection.setRequestMethod("POST");
         postConnection.setRequestProperty("Content-Type", "application/json");
@@ -184,18 +221,9 @@ public class BlindsendAPI {
         os.close();
 
         int responseCode = postConnection.getResponseCode();
-        LOGGER.info("/request/send-file Response Code :  " + responseCode);
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    postConnection.getInputStream()));
-            String inputLine;
-            StringBuffer response = new StringBuffer();
-            while ((inputLine = in .readLine()) != null) {
-                response.append(inputLine);
-            } in .close();
-        } else {
-            throw new RuntimeException("/request/send-file on BlindsendAPI failed");
-        }
+        LOGGER.info("/request/send-file-part Response Code :  " + responseCode);
+        if (responseCode != HttpURLConnection.HTTP_OK)
+            throw new RuntimeException("/request/send-file-part on BlindsendAPI failed for chunkId " + chunkId);
     }
 
     /**

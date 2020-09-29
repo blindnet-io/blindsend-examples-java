@@ -2,12 +2,15 @@ package blindsend;
 
 import api.BlindsendAPI;
 import crypto.CryptoFactory;
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import util.BlindsendUtil;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
 import java.security.*;
@@ -30,12 +33,14 @@ public class FileSender {
     }
 
     /**
-     * Encrypts a file from inputFilePath and sends it to blindsend.
+     * Encrypts a file from inputFilePath and sends it to blindsend
      * Also saves the encrypted file to encryptedFilePath
+     * Encrypted file can be uploaded in chunks of specified size
      * @param linkUrl File exchange link
      * @param inputFilePath Path to a file to be exchanged
+     * @param chunkSize Size in bytes of one upload chunk. If 0, the file is uploaded in one piece
      */
-    public void encryptAndSendFile(URL linkUrl, Path inputFilePath) throws GeneralSecurityException, IOException  {
+    public void encryptAndSendFile(URL linkUrl, Path inputFilePath, int chunkSize) throws GeneralSecurityException, IOException, InterruptedException {
         String linkId = BlindsendUtil.extractLinkId(linkUrl.toString());
 
         byte[] pkReceiverBytes = BlindsendUtil.toByte(BlindsendUtil.extractKey(linkUrl.toString()));
@@ -54,7 +59,7 @@ public class FileSender {
 
         CryptoFactory.encryptAndSaveFile(masterKey, inputFile, encryptedFilePath);
 
-        this.api.uploadFile(linkId, uploadId, encryptedFilePath);
+        uploadChunks(linkId, uploadId, encryptedFilePath, chunkSize);
 
         File encryptedFile = new File(encryptedFilePath);
         long fileSize = encryptedFile.length();
@@ -66,5 +71,30 @@ public class FileSender {
                 fileName,
                 fileSize
         );
+    }
+
+    private void uploadChunks(String linkId, String uploadId, String filePath, int chunkSize) throws IOException, InterruptedException {
+        File encryptedFile = new File(filePath);
+        byte[] encryptedFileBytes = FileUtils.readFileToByteArray(new File(filePath));
+        long enciptedFileSize = encryptedFile.length();
+        this.api.initializeFileUpload(linkId, uploadId, enciptedFileSize);
+
+        if (chunkSize == 0 || enciptedFileSize <= chunkSize)
+            this.api.uploadFileChunk(linkId, uploadId, 1, (int)enciptedFileSize, true, encryptedFileBytes);
+        else {
+            int id = 0;
+            long numChunks = Math.floorDiv(enciptedFileSize, chunkSize);
+            long lastChunkSize = Math.floorMod(enciptedFileSize, chunkSize);
+            InputStream encStream = new FileInputStream(encryptedFile);
+            for(int i=1; i<=numChunks; i++){
+                byte[] chunkBytes = new byte[chunkSize];
+                encStream.read(chunkBytes);
+                this.api.uploadFileChunk(linkId, uploadId, i, chunkSize, false, chunkBytes);
+                Thread.sleep(5000);
+            }
+            byte[] chunkBytes = new byte[(int)lastChunkSize];
+            encStream.read(chunkBytes);
+            this.api.uploadFileChunk(linkId, uploadId, (int)(numChunks+1), (int)lastChunkSize, true, chunkBytes);
+        }
     }
 }

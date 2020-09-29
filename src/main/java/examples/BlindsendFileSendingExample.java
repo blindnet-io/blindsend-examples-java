@@ -42,7 +42,8 @@ public class BlindsendFileSendingExample {
             URL link = receiver.getLink("mypass");
             sender.encryptAndSendFile(
                     link,
-                    fileToSendPath
+                    fileToSendPath,
+                    0
             );
             LOGGER.info("Blindsend file exchange link: " + link.toString());
         } catch (NoSuchAlgorithmException e) {
@@ -55,6 +56,8 @@ public class BlindsendFileSendingExample {
             Logger.getLogger(BlindsendFileSendingExample.class.getName()).log(Level.SEVERE, "GeneralSecurityException", e);
         } catch (NullPointerException e) {
             Logger.getLogger(BlindsendFileSendingExample.class.getName()).log(Level.SEVERE, "NullPointerException", e);
+        } catch (InterruptedException e) {
+            Logger.getLogger(BlindsendFileSendingExample.class.getName()).log(Level.SEVERE, "InterruptedException", e);
         }
     }
 }
