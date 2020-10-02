@@ -1,8 +1,8 @@
 package util;
 
 /**
- * Wrapper for /get-keys http response from blindsend API call
- * It provides a constructor to wrap the response in an object and obtain information from the response via getters
+ * Wrapper for <i>/request/get-keys</i> http response from blindsend API call.
+ * It provides a constructor to wrap the response in an object and obtain information from the response via getters.
  */
 public class Keys {
 

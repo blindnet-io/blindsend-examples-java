@@ -1,8 +1,8 @@
 package util;
 
 /**
- * The BlindsendUtil class provides helper methods for for working with different representation of data.
- * It also provides helper methods useful for manipulating blindsend links and link ids
+ * Class {@code BlindsendUtil} provides helper methods for working with different representation of data,
+ * and for manipulating blindsend links and link ids.
  */
 public class BlindsendUtil {
 
@@ -37,20 +37,20 @@ public class BlindsendUtil {
         return bytes;
     }
 
-    protected static String byteToHex(byte num) {
+    private static String byteToHex(byte num) {
         char[] hexDigits = new char[2];
         hexDigits[0] = Character.forDigit((num >> 4) & 0xF, 16);
         hexDigits[1] = Character.forDigit((num & 0xF), 16);
         return new String(hexDigits);
     }
 
-    protected static byte hexToByte(String hexString) {
+    private static byte hexToByte(String hexString) {
         int firstDigit = toDigit(hexString.charAt(0));
         int secondDigit = toDigit(hexString.charAt(1));
         return (byte) ((firstDigit << 4) + secondDigit);
     }
 
-    protected static int toDigit(char hexChar) {
+    private static int toDigit(char hexChar) {
         int digit = Character.digit(hexChar, 16);
         if(digit == -1) {
             throw new IllegalArgumentException(
@@ -89,11 +89,11 @@ public class BlindsendUtil {
     }
 
     /**
-     * Extracts public key from blindsend link
+     * Extracts the URI fragment from blindsend link
      * @param link Link
-     * @return Public key
+     * @return URI fragment, <i>public key</i> in the <i>request</i> use case, <i>seed</i> in the <i>send</i> use case
      */
-    public static String extractKey(String link) {
+    public static String extractUriFragment(String link) {
         int pos = link.lastIndexOf('#') + 1;
         return link.substring(pos);
     }

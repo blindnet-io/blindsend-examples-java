@@ -1,9 +1,12 @@
 package crypto;
 
 import org.apache.commons.io.FileUtils;
+import org.bouncycastle.crypto.digests.Blake2bDigest;
+import org.bouncycastle.crypto.digests.Blake2sDigest;
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
 import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.bouncycastle.crypto.prng.FixedSecureRandom;
+import org.bouncycastle.util.encoders.Hex;
 import util.BlindsendUtil;
 import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
@@ -12,8 +15,8 @@ import java.io.*;
 import java.security.*;
 
 /**
- * The CryptoFactory class provides methods for generating cryptographic primitives required by blindsend.
- * It also provides methods for encryption and decryption of files
+ * Class {@code CryptoFactory} provides methods for generating cryptographic primitives required by blindsend,
+ * and for encryption and decryption of files.
  */
 public class CryptoFactory {
 
@@ -42,9 +45,9 @@ public class CryptoFactory {
     }
 
     /**
-     * Generates a random bytes of length len
-     * @param len length of random value to generate
-     * @return salt
+     * Generates random bytes of length <i>len</i>
+     * @param len length of the random bytes to generate
+     * @return Random bytes
      */
     public static byte[] generateRandom(int len) throws NoSuchProviderException, NoSuchAlgorithmException {
         SecureRandom random = SecureRandom.getInstance("NonceAndIV", "BC");
@@ -54,14 +57,16 @@ public class CryptoFactory {
     }
 
     /**
-     * Generates a seed for key pair generation. Uses Argon2id hashing algorithm
+     * Generates a password-based seed by using <i>Argon2id</i> hashing algorithm.
+     * It is used to generate a seed for the key pair generation in the <i>/request</i> use case
+     * and file key generation in the <i>/send</i> use case.
      * @param password Password
      * @param kdfSalt Hashing salt
      * @param kdfOps Hashing cycles
      * @param kdfMin Hashing RAM limit
-     * @return Kay pair seed
+     * @return Seed
      */
-    public static byte[] generateKeyPairSeed(String password, byte[] kdfSalt, int kdfOps, int kdfMin) {
+    public static byte[] generateSeed(String password, byte[] kdfSalt, int kdfOps, int kdfMin) {
         Argon2Parameters.Builder builder = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id).
                 withSalt(kdfSalt).
                 withParallelism(kdfOps).
@@ -75,10 +80,60 @@ public class CryptoFactory {
     }
 
     /**
-     * Generates a master key (file encryption/decryption key)
+     * Derives a key using <i>BLAKE2s</i> algorithm
+     * @param seed Seed to derive the key from
+     * @param context Context, 8 bytes long
+     * @return Derived key
+     */
+    public static byte[] kdf(byte[] seed, byte[] context){
+        Blake2sDigest messageDigest = new Blake2sDigest(seed, 16, "10000000".getBytes(), context);
+        byte[] out = new byte[messageDigest.getDigestSize()];
+        messageDigest.doFinal(out, 0);
+        return Hex.encode(out);
+    }
+
+    /**
+     * Hashing using <i>BLAKE2b</i> algorithm
+     * @param value Value to hash
+     * @return Hash
+     */
+    public static byte[] hash(byte[] value){
+        Blake2bDigest messageDigest = new Blake2bDigest(128);
+        messageDigest.update(value, 0, value.length);
+        byte[] out = new byte[messageDigest.getDigestSize()];
+        messageDigest.doFinal(out, 0);
+        return Hex.encode(out);
+    }
+
+    /**
+     * Encrypts file metadata using the <i>AES-GCM</i> algorithm
+     * @param fileMetadata File metadata
+     * @param key Encryption key
+     * @param iv IV
+     * @return
+     */
+    public static byte[] encryptFileMetadata(byte[] fileMetadata, byte[] key, byte[] iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException {
+        SecretKey sk = new SecretKeySpec(key, 0, key.length, "AES");
+        return encryptAesGcm(fileMetadata, sk, iv);
+    }
+
+    /**
+     * Decrypts file metadata using the <i>AES-GCM</i> algorithm
+     * @param encFileMetadata Encrypted file metadata
+     * @param key Decryption key
+     * @param iv IV
+     * @return
+     */
+    public static byte[] decryptFileMetadata(byte[] encFileMetadata, byte[] key, byte[] iv) throws NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, NoSuchProviderException, InvalidAlgorithmParameterException {
+        SecretKey sk = new SecretKeySpec(key, 0, key.length, "AES");
+        return decryptAesGcm(encFileMetadata, sk, iv);
+    }
+
+    /**
+     * Generates a master key used for file encryption/decryption
      * @param sk Secret key
      * @param pk Public key
-     * @return Master key to be used for encryption/decryption
+     * @return Master key to be used for file encryption/decryption
      * @throws NoSuchProviderException
      * @throws NoSuchAlgorithmException
      * @throws InvalidKeyException
@@ -91,10 +146,10 @@ public class CryptoFactory {
     }
 
     /**
-     * Encrypts a file and saves it to disk
+     * Encrypts a file using the <i>AES-GCM</i> algorithm, and saves it locally
      * @param masterKey Master key for file encryption
      * @param inputFile File to encrypt
-     * @param encryptedFilePath Path to save encrypted file
+     * @param encryptedFilePath Path to save the encrypted file
      * @throws IOException
      */
     public static void encryptAndSaveFile(byte[] masterKey, File inputFile, String encryptedFilePath) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
@@ -106,10 +161,10 @@ public class CryptoFactory {
     }
 
     /**
-     * Decrypts a file and saves it to disk
+     * Decrypts a file using the <i>AES-GCM</i> algorithm, and saves it locally
      * @param masterKey Master key for file decryption
      * @param encryptedFile Encrypted file
-     * @param decryptedFilePath Path to save decrypted file
+     * @param decryptedFilePath Path to save the decrypted file
      * @throws IOException
      */
     public static void decryptAndSaveFile(byte[] masterKey, File encryptedFile, String decryptedFilePath) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
